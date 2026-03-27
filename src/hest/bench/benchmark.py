@@ -244,7 +244,7 @@ def predict_single_split(train_split, test_split, args, save_dir, dataset_name, 
     for split in [train_df, test_df]:
         for i in tqdm(range(len(split))):
             sample_id = split.iloc[i]['sample_id']
-            tile_h5_path = os.path.join(bench_data_root, split.iloc[i]['patches_path'])
+            tile_h5_path = split.iloc[i]['patches_path']
             assert os.path.isfile(tile_h5_path)
             embed_path = os.path.join(embedding_dir, f'{sample_id}.h5')
             if extract_tiles: 
@@ -282,7 +282,7 @@ def predict_single_split(train_split, test_split, args, save_dir, dataset_name, 
         for i in tqdm(range(len(split))):
             sample_id = split.iloc[i]['sample_id']
             embed_path = os.path.join(embedding_dir, f'{sample_id}.h5')
-            expr_path = os.path.join(bench_data_root, split.iloc[i]['expr_path'])
+            expr_path = split.iloc[i]['expr_path']
             assets, _ = read_assets_from_h5(embed_path)
             barcodes = assets['barcodes'].flatten().astype(str).tolist()
             adata = load_adata(expr_path, genes=genes, barcodes=barcodes, normalize=args.normalize)
@@ -436,8 +436,8 @@ def benchmark(
         
     set_seed(args.seed)
 
-    logger.info(f'Fetch the bench data...')
-    snapshot_download(repo_id="MahmoodLab/hest-bench", repo_type='dataset', local_dir=args.bench_data_root, ignore_patterns=['fm_v1/*'])
+    # logger.info(f'Fetch the bench data...')
+    # snapshot_download(repo_id="MahmoodLab/hest-bench", repo_type='dataset', local_dir=args.bench_data_root, ignore_patterns=['fm_v1/*'])
     
     
     logger.info(f'Benchmarking on the following datasets {args.datasets}')

@@ -80,6 +80,7 @@ def normalize_adata(adata: sc.AnnData, smooth=False) -> sc.AnnData:
 
 def load_adata(expr_path, genes = None, barcodes = None, normalize=False):
     adata = sc.read_h5ad(expr_path)
+    adata.var_names_make_unique() # TODO: DEBUG: GBMSpace debug
     if barcodes is not None:
         adata = adata[barcodes]
     if genes is not None:
