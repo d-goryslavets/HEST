@@ -32,6 +32,10 @@ from hest.bench.utils.file_utils import (read_assets_from_h5, save_hdf5,
                                          save_pkl)
 from hest.bench.utils.utils import merge_dict, get_current_time
 
+
+# Constants
+PRECOMPUTED_MODEL = 'precomputed'
+
 # Generic training settings - note that defaults are set in BenchmarkConfig
 parser = argparse.ArgumentParser(description='Configurations for linear probing')
 ### optimizer settings ###
@@ -234,12 +238,18 @@ def predict_single_split(train_split, test_split, args, save_dir, dataset_name, 
     
     # Embed patches
     logger.info(f"Embedding tiles for {dataset_name} using {model_name} encoder")
+    precomputed = False
     if model_name == 'custom_encoder':
         encoder = custom_encoder
         args.overwrite = True # always overwrite custom encoders
+    elif PRECOMPUTED_MODEL in model_name:
+        encoder = None
+        precomputed = True
     else:
         encoder = encoder_factory(model_name)
-    precision = encoder.precision
+
+    if not precomputed:
+        precision = encoder.precision
     
     for split in [train_df, test_df]:
         for i in tqdm(range(len(split))):
@@ -248,7 +258,7 @@ def predict_single_split(train_split, test_split, args, save_dir, dataset_name, 
             assert os.path.isfile(tile_h5_path)
             embed_path = os.path.join(embedding_dir, f'{sample_id}.h5')
             if extract_tiles: 
-                if not os.path.isfile(embed_path) or args.overwrite:
+                if not precomputed or not os.path.isfile(embed_path) or args.overwrite:
                     
                     _ = encoder.eval()
                     encoder.to(device)
