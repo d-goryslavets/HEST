@@ -258,7 +258,7 @@ def predict_single_split(train_split, test_split, args, save_dir, dataset_name, 
             assert os.path.isfile(tile_h5_path)
             embed_path = os.path.join(embedding_dir, f'{sample_id}.h5')
             if extract_tiles: 
-                if not precomputed or not os.path.isfile(embed_path) or args.overwrite:
+                if not precomputed and (not os.path.isfile(embed_path) or args.overwrite):
                     
                     _ = encoder.eval()
                     encoder.to(device)
