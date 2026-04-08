@@ -307,7 +307,7 @@ def predict_single_split(train_split, test_split, args, save_dir, dataset_name, 
     X_train, y_train = all_split_assets['train']['embeddings'], all_split_assets['train']['adata']
     X_test, y_test = all_split_assets['test']['embeddings'], all_split_assets['test']['adata']
     
-    
+    pipe = None
     if args.dimreduce == 'PCA':
         from sklearn.decomposition import PCA
         
@@ -316,7 +316,7 @@ def predict_single_split(train_split, test_split, args, save_dir, dataset_name, 
         X_train, X_test = torch.Tensor(pipe.fit_transform(X_train)), torch.Tensor(pipe.transform(X_test))
     
     
-    probe_results, linprobe_dump = train_test_reg(X_train, X_test, y_train, y_test, random_state=args.seed, genes=genes, method=args.method)
+    probe_results, linprobe_dump, reg = train_test_reg(X_train, X_test, y_train, y_test, random_state=args.seed, genes=genes, method=args.method)
     probe_summary = {}
     probe_summary.update({'n_train': len(y_train), 'n_test': len(y_test)})
     probe_summary.update({key: val for key, val in probe_results.items()})
@@ -328,6 +328,9 @@ def predict_single_split(train_split, test_split, args, save_dir, dataset_name, 
     with open(os.path.join(save_dir, f'summary.json'), 'w') as f:
         json.dump(probe_summary, f, sort_keys=True, indent=4)
     save_pkl(os.path.join(save_dir, f'inference_dump.pkl'), linprobe_dump)
+    save_pkl(os.path.join(save_dir, f'trained_model.pkl'), reg)
+    if pipe is not None:
+        save_pkl(os.path.join(save_dir, f'pca_pipe.pkl'), pipe)
     return probe_results
 
 

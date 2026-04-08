@@ -668,7 +668,7 @@ def get_k_genes_from_df(meta_df: pd.DataFrame, k: int, criteria: str, save_dir: 
     return get_k_genes(adata_list, k, criteria, save_dir=save_dir)
 
 
-def get_k_genes(adata_list: List[sc.AnnData], k: int, criteria: str, save_dir: str=None, min_cells_pct=0.10) -> List[str]: # type: ignore
+def get_k_genes(adata_list: List[sc.AnnData], k: int, criteria: str, save_dir: str=None, min_cells_pct=0.10, normalize: bool = False) -> List[str]: # type: ignore
     """ Get the top-k genes according to some criteria in common genes across multiple samples.\
         This function was used to derive genes of interest for the HEST benchmark.
 
@@ -734,6 +734,9 @@ def get_k_genes(adata_list: List[sc.AnnData], k: int, criteria: str, save_dir: s
     elif criteria == 'var':
         stacked_adata = sc.AnnData(stacked_expressions.astype(np.float32))
         sc.pp.filter_genes(stacked_adata, min_cells=0)
+        # if normalize:
+        #     sc.pp.filter_cells(stacked_adata, min_counts=1)
+        #     sc.pp.normalize_total(stacked_adata, target_sum=1e4) # CP10K
         sc.pp.log1p(stacked_adata)
         sc.pp.highly_variable_genes(stacked_adata, n_top_genes=k)
         top_k = stacked_adata.var_names[stacked_adata.var['highly_variable']][:k].tolist()

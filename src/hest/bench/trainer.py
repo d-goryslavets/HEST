@@ -122,4 +122,4 @@ def train_test_reg(X_train, X_test, y_train, y_test,
         'targets_all': y_test,
     }
     
-    return results, dump
+    return results, dump, reg
