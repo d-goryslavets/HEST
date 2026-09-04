@@ -78,11 +78,15 @@ def normalize_adata(adata: sc.AnnData, smooth=False) -> sc.AnnData:
 
     return filtered_adata
 
-def load_adata(expr_path, genes = None, barcodes = None, normalize=False):
+def load_adata(expr_path, genes = None, barcodes = None, normalize=False, feature_type=None):
     adata = sc.read_h5ad(expr_path)
     adata.var_names_make_unique() # TODO: DEBUG: GBMSpace debug
     if barcodes is not None:
         adata = adata[barcodes]
+    if feature_type is not None:
+        # this is GBMSpace specific as different feature types are stored within the same matrix X 
+        # ['Cell state abundances', 'Gene Expression', 'Histopath annotation overlap', 'Spatial niche abundances']
+        adata = adata[:, adata.var.feature_types == feature_type] 
     if genes is not None:
         adata = adata[:, genes]
     if normalize:

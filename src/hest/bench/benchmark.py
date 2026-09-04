@@ -59,6 +59,7 @@ parser.add_argument('--alpha', type=float)
 parser.add_argument('--kfold', action='store_true')
 parser.add_argument('--benchmark_encoders', action='store_true')
 parser.add_argument('--normalize', type=bool)
+parser.add_argument('--feature_type', type=str, default='Gene Expression', help='Feature type to select from the AnnData object') # GBMSpace specific
 parser.add_argument('--dimreduce', type=str, help='whenever to perform dimensionality reduction before linear probing, can be "PCA" or None')
 parser.add_argument('--latent_dim', type=int, help='dimensionality reduction latent dimension')
 parser.add_argument('--encoders', nargs='+', help='All the encoders to benchmark')
@@ -98,6 +99,7 @@ class BenchmarkConfig:
     kfold: bool = False
     benchmark_encoders: bool = False
     normalize: bool = True
+    feature_type: str = 'Gene Expression'
     dimreduce: Optional[str] = "PCA"
     latent_dim: int = 256
     encoders: list = field(default_factory=lambda: ['resnet50'])
@@ -295,7 +297,7 @@ def predict_single_split(train_split, test_split, args, save_dir, dataset_name, 
             expr_path = split.iloc[i]['expr_path']
             assets, _ = read_assets_from_h5(embed_path)
             barcodes = assets['barcodes'].flatten().astype(str).tolist()
-            adata = load_adata(expr_path, genes=genes, barcodes=barcodes, normalize=args.normalize)
+            adata = load_adata(expr_path, genes=genes, barcodes=barcodes, normalize=args.normalize, feature_type=args.feature_type)
             assets['adata'] = adata.values
             split_assets = merge_dict(split_assets, assets)
         for key, val in split_assets.items(): 
