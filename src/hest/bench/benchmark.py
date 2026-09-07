@@ -81,6 +81,9 @@ class BenchmarkConfig:
     bench_data_root: Optional[str] = 'eval/bench_data'
     # Benchmark data will automatically be downloaded to this path
 
+    splits_dirname: Optional[str] = 'splits'
+    # splits directory (can be changed via the config if trying out different splitting approaches or different adata features)
+
     embed_dataroot: Optional[str] = 'eval/ST_data_emb'
     # Embeddings generated during benchmarking will be saved to this path
 
@@ -129,7 +132,8 @@ def benchmark_grid(args, device, model_names, datasets: List[str], save_dir, cus
             logger.info(f'HESTBench task: {dataset}, Encoder: {model_name}')
             exp_save_dir = os.path.join(save_dir, dataset, model_name)
             os.makedirs(exp_save_dir, exist_ok=True)
-            enc_results = predict_folds(args, exp_save_dir, model_name, dataset, device, bench_data_root, custom_encoder)
+            enc_results = predict_folds(args, exp_save_dir, model_name, dataset, device, bench_data_root, custom_encoder, 
+                                        splits_dirname=args.splits_dirname)
             
             enc_perfs.append({
                 'encoder_name': model_name,
@@ -226,13 +230,14 @@ def embed_tiles(
     return embedding_save_path
 
 
-def predict_single_split(train_split, test_split, args, save_dir, dataset_name, model_name, device, bench_data_root, custom_encoder, extract_tiles):
+def predict_single_split(train_split, test_split, args, save_dir, dataset_name, model_name, device, bench_data_root, custom_encoder, extract_tiles, 
+                         splits_dirname: str = 'splits'):
     """ Predict a single split for a single model """
 
     if not os.path.isfile(train_split):
-        train_split = os.path.join(bench_data_root, 'splits', train_split)
+        train_split = os.path.join(bench_data_root, splits_dirname, train_split)
     if not os.path.isfile(test_split):
-        test_split = os.path.join(bench_data_root, 'splits', test_split)
+        test_split = os.path.join(bench_data_root, splits_dirname, test_split)
     
     train_df = pd.read_csv(train_split)
     test_df = pd.read_csv(test_split)
@@ -368,9 +373,14 @@ def merge_fold_results(arr):
     }
         
         
-def predict_folds(args, exp_save_dir, model_name, dataset_name, device, bench_data_root, custom_encoder):
+def predict_folds(args, exp_save_dir, model_name, dataset_name, device, bench_data_root, custom_encoder, 
+                  splits_dirname: str | None = None):
+
+    if splits_dirname is None:
+        splits_dirname = 'splits'
+
     """ Predict all folds for a given model """
-    split_dir = os.path.join(bench_data_root, 'splits')
+    split_dir = os.path.join(bench_data_root, splits_dirname)
     #if not os.path.exists(split_dir):
     #    raise FileNotFoundError(f"{split_dir} doesn't exist, make sure that you specified the ")
     splits = os.listdir(split_dir)
@@ -384,7 +394,8 @@ def predict_folds(args, exp_save_dir, model_name, dataset_name, device, bench_da
         kfold_save_dir = os.path.join(exp_save_dir, f'split{i}')
         os.makedirs(kfold_save_dir, exist_ok=True)
         extract_tiles = True if i == 0 else False
-        linprobe_results = predict_single_split(train_split, test_split, args, kfold_save_dir, dataset_name, model_name, device=device, bench_data_root=bench_data_root, custom_encoder=custom_encoder, extract_tiles=extract_tiles)
+        linprobe_results = predict_single_split(train_split, test_split, args, kfold_save_dir, dataset_name, model_name, device=device, bench_data_root=bench_data_root, custom_encoder=custom_encoder, extract_tiles=extract_tiles, 
+                                                splits_dirname=splits_dirname)
         libprobe_results_arr.append(linprobe_results)
         
         

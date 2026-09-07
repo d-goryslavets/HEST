@@ -111,20 +111,24 @@ def load_adata(expr_path, genes = None, barcodes = None, normalize=False, featur
     # 2. Total Count Normalization
     # Must happen BEFORE gene subsetting so size factors use the entire transcriptome
     if normalize:
+        print(f"Normalizing on library size")
         sc.pp.normalize_total(adata, target_sum=1e4)
 
     # 3. Gene Subsetting
     # Mathematically commutes with row-wise smoothing, so doing it early saves memory and compute
     if genes is not None:
+        print(f"Subsetting genes to {genes}")
         adata = adata[:, genes]
 
     # 4. Spatial Smoothing
     # Performed on linear scale (raw or normalized) before log transformation
     if smooth:
+        print(f"Applying spatial smoothing")
         adata = apply_spatial_smoothing(adata)
 
     # 5. Log Transformation
     if normalize:
+        print(f"Applying log1p transformation")
         sc.pp.log1p(adata)
 
     return adata.to_df()
