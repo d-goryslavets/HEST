@@ -78,17 +78,53 @@ def normalize_adata(adata: sc.AnnData, smooth=False) -> sc.AnnData:
 
     return filtered_adata
 
-def load_adata(expr_path, genes = None, barcodes = None, normalize=False, feature_type=None):
+
+def apply_spatial_smoothing(adata: sc.AnnData) -> sc.AnnData:
+    """Helper function to run fast, vectorized neighbor averaging."""
+    X_dense = adata.X.toarray() if hasattr(adata.X, "toarray") else adata.X.astype(np.float64)
+    smoothed_X = np.zeros_like(X_dense)
+    
+    rows = adata.obs['array_row'].values
+    cols = adata.obs['array_col'].values
+    
+    for i in range(len(adata)):
+        r, c = rows[i], cols[i]
+        neighbor_mask = (rows >= r - 1) & (rows <= r + 1) & (cols >= c - 1) & (cols <= c + 1)
+        smoothed_X[i] = X_dense[neighbor_mask].mean(axis=0)
+        
+    adata.X = smoothed_X
+    return adata
+
+
+def load_adata(expr_path, genes = None, barcodes = None, normalize=False, feature_type=None, smooth=False):
     adata = sc.read_h5ad(expr_path)
     adata.var_names_make_unique() # TODO: DEBUG: GBMSpace debug
     if barcodes is not None:
         adata = adata[barcodes]
+
     if feature_type is not None:
+        print(f"Restricting  features to {feature_type} type")
         # this is GBMSpace specific as different feature types are stored within the same matrix X 
         # ['Cell state abundances', 'Gene Expression', 'Histopath annotation overlap', 'Spatial niche abundances']
-        adata = adata[:, adata.var.feature_types == feature_type] 
+        adata = adata[:, adata.var.feature_types == feature_type]
+
+    # 2. Total Count Normalization
+    # Must happen BEFORE gene subsetting so size factors use the entire transcriptome
+    if normalize:
+        sc.pp.normalize_total(adata, target_sum=1e4)
+
+    # 3. Gene Subsetting
+    # Mathematically commutes with row-wise smoothing, so doing it early saves memory and compute
     if genes is not None:
         adata = adata[:, genes]
+
+    # 4. Spatial Smoothing
+    # Performed on linear scale (raw or normalized) before log transformation
+    if smooth:
+        adata = apply_spatial_smoothing(adata)
+
+    # 5. Log Transformation
     if normalize:
-        adata = normalize_adata(adata)
+        sc.pp.log1p(adata)
+
     return adata.to_df()
